@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users — ShieldNet NIDS{% endblock %}
+{% block page_title %}MANAGE USERS{% endblock %}
+{% block page_sub %}View, activate, deactivate, and delete user accounts{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block topbar_actions %}
+<span style="background: #c62828; color: white; padding: 5px 12px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+    <i class="fas fa-user-shield"></i> ADMIN MODE
+</span>
+{% endblock %}
+
+{% block page_content %}
+<div class="page-body">
+
+    <div class="search-box">
+        <div class="stats-info">
+            <i class="fas fa-users"></i> Total Users: <strong id="user-count">{{ users|length }}</strong>
+        </div>
+        <input type="text" class="search-input" id="searchInput" placeholder="🔍 Search by name or email...">
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="users-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Mobile</th>
+                    <th>Registered</th>
+                    <th>Last Login</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="usersTableBody">
+                {% for user in users %}
+                <tr data-name="{{ user.name.lower() }}" data-email="{{ user.email.lower() }}" data-user-id="{{ user.id }}" data-user-name="{{ user.name }}" data-user-status="{{ user.is_active }}">
+                    <td style="font-family: monospace;">{{ user.id }}</td>
+                    <td><strong>{{ user.name }}</strong></td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.mobile }}</td>
+                    <td>{{ user.created_at[:10] if user.created_at else 'N/A' }}</td>
+                    <td>{{ user.last_login[:10] if user.last_login else 'Never' }}</td>
+                    <td>
+                        <span class="status-badge status-{{ 'active' if user.is_active == 1 else 'inactive' }}">
+                            {{ 'Active' if user.is_active == 1 else 'Inactive' }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="action-btn btn-toggle" data-user-id="{{ user.id }}" data-user-status="{{ user.is_active }}">
+                            {{ 'Deactivate' if user.is_active == 1 else 'Activate' }}
+                        </button>
+                        <button class="action-btn btn-delete" data-user-id="{{ user.id }}" data-user-name="{{ user.name }}">
+                            Delete
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not users %}
+    <div style="text-align: center; padding: 50px; background: white; border-radius: 8px; margin-top: 20px;">
+        <i class="fas fa-users" style="font-size: 48px; color: #ccc;"></i>
+        <p style="margin-top: 15px; color: #666;">No users found in the system.</p>
+        <p style="font-size: 12px; color: #888;">New users will appear here after they register.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Event listeners for buttons (instead of inline onclick)
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle toggle buttons
+        document.querySelectorAll('.btn-toggle').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var userId = this.getAttribute('data-user-id');
+                var currentStatus = this.getAttribute('data-user-status');
+                toggleUserStatus(userId, currentStatus);
+            });
+        });
+        
+        // Handle delete buttons
+        document.querySelectorAll('.btn-delete').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var userId = this.getAttribute('data-user-id');
+                var userName = this.getAttribute('data-user-name');
+                deleteUser(userId, userName);
+            });
+        });
+    });
+    
+    function showAdminAlert(message, type) {
+        var alertDiv = document.getElementById('adminAlert');
+        if (!alertDiv) {
+            alertDiv = document.createElement('div');
+            alertDiv.id = 'adminAlert';
+            alertDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 4px; z-index: 1000;';
+            document.body.appendChild(alertDiv);
+        }
+        alertDiv.textContent = message;
+        alertDiv.style.background = type === 'success' ? '#d4edda' : '#f8d7da';
+        alertDiv.style.color = type === 'success' ? '#155724' : '#721c24';
+        alertDiv.style.border = type === 'success' ? '1px solid #c3e6cb' : '1px solid #f5c6cb';
+        alertDiv.style.display = 'block';
+        
+        setTimeout(function() {
+            alertDiv.style.display = 'none';
+        }, 3000);
+    }
+    
+    async function toggleUserStatus(userId, currentStatus) {
+        var action = currentStatus == 1 ? 'deactivate' : 'activate';
+        
+        if (confirm('Are you sure you want to ' + action + ' this user?')) {
+            try {
+                var response = await fetch('/api/admin/users/' + userId + '/toggle-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                var data = await response.json();
+                
+                if (data.success) {
+                    showAdminAlert('User ' + action + 'd successfully!', 'success');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showAdminAlert(data.message, 'error');
+                }
+            } catch (error) {
+                showAdminAlert('Network error. Please try again.', 'error');
+            }
+        }
+    }
+    
+    async function deleteUser(userId, userName) {
+        if (confirm('Are you sure you want to permanently delete user "' + userName + '"? This action cannot be undone.')) {
+            try {
+                var response = await fetch('/api/admin/users/' + userId, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                var data = await response.json();
+                
+                if (data.success) {
+                    showAdminAlert('User "' + userName + '" deleted successfully!', 'success');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showAdminAlert(data.message, 'error');
+                }
+            } catch (error) {
+                showAdminAlert('Network error. Please try again.', 'error');
+            }
+        }
+    }
+    
+    // Search functionality
+    var searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            var searchTerm = this.value.toLowerCase();
+            var rows = document.querySelectorAll('#usersTableBody tr');
+            var visibleCount = 0;
+            
+            rows.forEach(function(row) {
+                var name = row.getAttribute('data-name') || '';
+                var email = row.getAttribute('data-email') || '';
+                if (name.includes(searchTerm) || email.includes(searchTerm)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            var userCountSpan = document.getElementById('user-count');
+            if (userCountSpan) {
+                userCountSpan.textContent = visibleCount;
+            }
+        });
+    }
+</script>
+{% endblock %}

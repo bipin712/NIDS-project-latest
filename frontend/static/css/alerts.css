@@ -1,0 +1,137 @@
+/* Professional Alerts Page Styles */
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.chip {
+  padding: 6px 14px;
+  background: white;
+  border: 1px solid #e0e4e8;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #666;
+}
+
+.chip:hover {
+  border-color: #2c5f8a;
+  background: #f0f4f8;
+}
+
+.chip.active {
+  background: #2c5f8a;
+  border-color: #2c5f8a;
+  color: white;
+}
+
+.search-wrap {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  border: 1px solid #e0e4e8;
+  border-radius: 6px;
+  padding: 0 10px;
+}
+
+.search-input {
+  background: transparent;
+  border: none;
+  padding: 8px 0;
+  font-size: 12px;
+  outline: none;
+  width: 200px;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  max-height: calc(100vh - 350px);
+  overflow-y: auto;
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  background: #f5f7fa;
+  z-index: 10;
+}
+
+.mono-cell {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.btn-detail {
+  background: #2c5f8a;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+.btn-detail:hover {
+  background: #1e4a6e;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding: 16px;
+}
+
+.detail-cell {
+  background: #f8f9fa;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.detail-label {
+  font-size: 10px;
+  color: #888;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+
+.detail-value {
+  font-size: 13px;
+  font-family: monospace;
+}
+
+@media (max-width: 768px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .search-wrap {
+    margin-left: 0;
+  }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

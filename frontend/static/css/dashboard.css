@@ -1,0 +1,91 @@
+/* Professional Dashboard Styles - College Project */
+
+.capture-btn {
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background: white;
+  color: #666;
+}
+
+.capture-btn.capturing {
+  border-color: #2e7d64;
+  color: #2e7d64;
+  background: rgba(46,125,100,0.05);
+}
+
+.iface-selector {
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  outline: none;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.alert-table-scroll {
+  overflow-x: auto;
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.shap-body {
+  padding: 16px;
+}
+
+.packet-feed-inner {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.health-body {
+  padding: 16px;
+}
+
+.health-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.health-label {
+  width: 80px;
+  font-size: 12px;
+  color: #666;
+}
+
+.health-track {
+  flex: 1;
+  height: 4px;
+  background: #e0e4e8;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.health-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.health-val {
+  width: 45px;
+  font-size: 11px;
+  font-family: monospace;
+  text-align: right;
+}
+
+.source-empty {
+  padding: 24px;
+  text-align: center;
+}
