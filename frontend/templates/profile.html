@@ -1,0 +1,286 @@
+{% extends "base.html" %}
+
+{% block title %}User Profile - NIDS Security Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/profile.css') }}">
+{% endblock %}
+
+{% block page_title %}User Profile{% endblock %}
+{% block page_sub %}View and manage your account details{% endblock %}
+
+{% block page_content %}
+<div class="profile-container">
+    <!-- Profile Header -->
+    <div class="profile-header">
+        <div class="profile-avatar-section">
+            <div class="profile-avatar">{{ user.name[0].upper() if user.name else '?' }}</div>
+            <div class="profile-info">
+                <h2>{{ user.name if user.name else 'User' }}</h2>
+                <p class="profile-email">{{ user.email if user.email else 'No email' }}</p>
+            </div>
+        </div>
+        <div class="profile-actions">
+            <button class="btn btn-primary" onclick="editProfile()">Edit Profile</button>
+            <button class="btn btn-secondary" onclick="changePassword()">Change Password</button>
+        </div>
+    </div>
+
+    <!-- Profile Details -->
+    <div class="profile-content">
+        <div class="profile-card">
+            <div class="card-title">Account Information</div>
+            
+            <div class="info-grid">
+                <!-- Full Name -->
+                <div class="info-item">
+                    <label>Full Name</label>
+                    <div class="info-value">{{ user.name if user.name else 'Not provided' }}</div>
+                </div>
+
+                <!-- Email -->
+                <div class="info-item">
+                    <label>Email Address</label>
+                    <div class="info-value">{{ user.email if user.email else 'Not provided' }}</div>
+                </div>
+
+                <!-- Mobile -->
+                <div class="info-item">
+                    <label>Mobile Number</label>
+                    <div class="info-value">{{ user.mobile if user.mobile else 'Not provided' }}</div>
+                </div>
+
+                <!-- User ID -->
+                <div class="info-item">
+                    <label>User ID</label>
+                    <div class="info-value">#{{ user.id if user.id else 'N/A' }}</div>
+                </div>
+
+                <!-- Account Created -->
+                <div class="info-item">
+                    <label>Account Created</label>
+                    <div class="info-value">
+                        {% if user.created_at %}
+                            {{ user.created_at[:19] }}
+                        {% else %}
+                            Not available
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Last Login -->
+                <div class="info-item">
+                    <label>Last Login</label>
+                    <div class="info-value">
+                        {% if user.last_login %}
+                            {{ user.last_login[:19] }}
+                        {% else %}
+                            This is your first login
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security Settings -->
+        <div class="profile-card">
+            <div class="card-title">Security Settings</div>
+            
+            <div class="security-options">
+                <div class="security-item">
+                    <div class="security-info">
+                        <h4>Two-Factor Authentication</h4>
+                        <p>Add an extra layer of security to your account</p>
+                    </div>
+                    <button class="btn btn-outline" onclick="enable2FA()">Enable</button>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-info">
+                        <h4>Password</h4>
+                        <p>Manage your password and login security</p>
+                    </div>
+                    <button class="btn btn-outline" onclick="changePassword()">Change Password</button>
+                </div>
+
+                <div class="security-item">
+                    <div class="security-info">
+                        <h4>Active Sessions</h4>
+                        <p>View and manage your active login sessions</p>
+                    </div>
+                    <button class="btn btn-outline" onclick="viewSessions()">View Sessions</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="profile-card danger-zone">
+            <div class="card-title danger">Danger Zone</div>
+            
+            <div class="danger-item">
+                <div class="danger-info">
+                    <h4>Delete Account</h4>
+                    <p>Permanently delete your account and all associated data</p>
+                </div>
+                <button class="btn btn-danger" onclick="deleteAccount()">Delete Account</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Profile Modal -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Profile</h3>
+            <button class="modal-close" onclick="closeEditModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="editForm">
+                <div class="form-group">
+                    <label for="editName">Full Name</label>
+                    <input type="text" id="editName" value="{{ user.name if user.name else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="editEmail">Email Address</label>
+                    <input type="email" id="editEmail" value="{{ user.email if user.email else '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="editMobile">Mobile Number</label>
+                    <input type="tel" id="editMobile" value="{{ user.mobile if user.mobile else '' }}" required>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveProfile()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Change Password Modal -->
+<div id="changePasswordModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Change Password</h3>
+            <button class="modal-close" onclick="closeChangePasswordModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="changePasswordForm">
+                <div class="form-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" placeholder="Enter your current password" required>
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" placeholder="Enter new password (min. 6 characters)" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" placeholder="Confirm new password" required>
+                </div>
+                <div class="form-info">
+                    <p style="font-size: 12px; color: #888;">Password must be at least 6 characters long.</p>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeChangePasswordModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitChangePassword()">Change Password</button>
+        </div>
+    </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div id="forgotPasswordModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Reset Password</h3>
+            <button class="modal-close" onclick="closeForgotPasswordModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="forgotPasswordStep1">
+                <p style="margin-bottom: 16px; color: #666;">Select how you'd like to reset your password:</p>
+                <div class="form-group">
+                    <button type="button" class="btn-reset-method" onclick="showResetViaEmail()">
+                        <span style="font-size: 18px; margin-right: 8px;">📧</span>
+                        <span>Reset via Email</span>
+                    </button>
+                </div>
+                <div class="form-group">
+                    <button type="button" class="btn-reset-method" onclick="showResetViaMobile()">
+                        <span style="font-size: 18px; margin-right: 8px;">📱</span>
+                        <span>Reset via Mobile Number</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="forgotPasswordStep2" style="display: none;">
+                <form id="forgotPasswordForm">
+                    <div class="form-group">
+                        <label for="resetEmail">Email Address</label>
+                        <input type="email" id="resetEmail" placeholder="Enter your email address" required>
+                    </div>
+                    <button type="button" class="btn-send-code" id="sendCodeEmailBtn" onclick="sendResetCodeEmail()">Send Code to Email</button>
+                    <div id="emailCodeSentMessage" style="display: none; margin-top: 10px; padding: 10px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px; font-size: 12px;">
+                        ✓ Code sent successfully! Check your email.
+                    </div>
+                    <div id="emailCodeError" style="display: none; margin-top: 10px; padding: 10px; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 4px; font-size: 12px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="resetCode">Verification Code</label>
+                        <input type="text" id="resetCode" placeholder="Enter verification code" maxlength="6" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="newResetPassword">New Password</label>
+                        <input type="password" id="newResetPassword" placeholder="Enter new password" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmResetPassword">Confirm Password</label>
+                        <input type="password" id="confirmResetPassword" placeholder="Confirm new password" disabled>
+                    </div>
+                    <button type="button" class="btn" style="width: 100%; margin-top: 10px; background: #2c5f8a; color: white; border: none; padding: 10px;" onclick="goBackResetMethod()">← Go Back</button>
+                </form>
+            </div>
+
+            <div id="forgotPasswordStep3" style="display: none;">
+                <form id="forgotPasswordMobileForm">
+                    <div class="form-group">
+                        <label for="resetMobile">Mobile Number</label>
+                        <input type="tel" id="resetMobile" placeholder="Enter your mobile number" required>
+                    </div>
+                    <button type="button" class="btn-send-code" id="sendCodeMobileBtn" onclick="sendResetCodeMobile()">Send Code to Mobile</button>
+                    <div id="mobileCodeSentMessage" style="display: none; margin-top: 10px; padding: 10px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px; font-size: 12px;">
+                        ✓ Code sent successfully! Check your SMS.
+                    </div>
+                    <div id="mobileCodeError" style="display: none; margin-top: 10px; padding: 10px; background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; border-radius: 4px; font-size: 12px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="resetCodeMobile">Verification Code</label>
+                        <input type="text" id="resetCodeMobile" placeholder="Enter verification code" maxlength="6" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="newResetPasswordMobile">New Password</label>
+                        <input type="password" id="newResetPasswordMobile" placeholder="Enter new password" disabled>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmResetPasswordMobile">Confirm Password</label>
+                        <input type="password" id="confirmResetPasswordMobile" placeholder="Confirm new password" disabled>
+                    </div>
+                    <button type="button" class="btn" style="width: 100%; margin-top: 10px; background: #2c5f8a; color: white; border: none; padding: 10px;" onclick="goBackResetMethod()">← Go Back</button>
+                </form>
+            </div>
+        </div>
+        <div class="modal-footer" id="forgotPasswordFooter">
+            <button class="btn btn-secondary" onclick="closeForgotPasswordModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="submitResetPassword()">Reset Password</button>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+
+<!-- Scroll to Top Button -->
+<button id="scrollToTopBtn" onclick="scrollToTop()" title="Scroll to top">↑</button>
+
+{% endblock %}
