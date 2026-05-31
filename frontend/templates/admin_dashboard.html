@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_admin.html" %}
 
 {% block title %}Admin Dashboard — ShieldNet NIDS{% endblock %}
 {% block page_title %}ADMIN DASHBOARD{% endblock %}
@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block topbar_actions %}
-<span style="background: #c62828; color: white; padding: 5px 12px; border-radius: 4px; font-size: 11px; font-weight: 600;">
+<span class="admin-mode-badge">
     <i class="fas fa-user-shield"></i> ADMIN MODE
 </span>
 {% endblock %}
@@ -17,7 +17,6 @@
 {% block page_content %}
 <div class="page-body">
 
-    <!-- Admin Stats -->
     <div class="admin-stats">
         <div class="admin-stat-card">
             <div class="stat-number">{{ total_users }}</div>
@@ -37,7 +36,6 @@
         </div>
     </div>
 
-    <!-- Quick Actions -->
     <div class="admin-section-title">Quick Actions</div>
     <div class="quick-actions">
         <a href="/admin-users" class="quick-action-btn">
@@ -66,19 +64,14 @@
         </a>
     </div>
 
-    <!-- Admin Info -->
     <div class="admin-info-box">
         <h4><i class="fas fa-info-circle"></i> Admin Information</h4>
         <p>Logged in as: <strong>{{ admin_name }}</strong></p>
         <p>As an administrator, you can manage users, view system statistics, and monitor all network activity.</p>
-        <p style="margin-top: 10px; font-size: 12px; color: #888;">
+        <p style="margin-top: 10px; font-size: 12px;">
             <i class="fas fa-shield-alt"></i> You have full access to all system features.
         </p>
     </div>
 
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
 {% endblock %}

@@ -1,0 +1,93 @@
+{% include '_head.html' %}
+<body>
+
+<div class="app-shell">
+
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-logo-row">
+        <div class="sb-logo-icon"><i class="fas fa-shield"></i></div>
+        <div>
+          <div class="sb-logo-name">SHIELDNET</div>
+          <div class="sb-logo-ver">NIDS v1.0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sb-status">
+      <div class="sb-status-dot" id="sb-status-dot"></div>
+      <span class="sb-status-text" id="sb-status-text">SYSTEM READY</span>
+    </div>
+
+    <nav class="sb-nav">
+      <div class="sb-section">ADMIN</div>
+      <a href="{{ url_for('admin.admin_dashboard') }}" class="nav-item {% if active_page == 'admin_dashboard' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-tachometer-alt"></i></span> Admin Dashboard
+      </a>
+      <a href="{{ url_for('admin.admin_users') }}" class="nav-item {% if active_page == 'admin_users' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-users"></i></span> Manage Users
+      </a>
+      <a href="{{ url_for('admin.admin_reports') }}" class="nav-item {% if active_page == 'reports' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-file"></i></span> Reports
+      </a>
+      <a href="{{ url_for('admin.admin_settings') }}" class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-cog"></i></span> System Settings
+      </a>
+      <a href="javascript:void(0)" class="nav-item" onclick="showHelp()">
+        <span class="nav-icon"><i class="fas fa-question-circle"></i></span> Help
+      </a>
+    </nav>
+
+    <div class="sb-user">
+      <div class="sb-avatar">{{ admin_name[0].upper() if admin_name else 'A' }}</div>
+      <div class="sb-user-info">
+        <div class="sb-user-name">{{ admin_name if admin_name else 'Admin' }}</div>
+        <div class="sb-user-role">Administrator</div>
+      </div>
+      <a href="{{ url_for('admin.admin_logout_page') }}" class="sb-logout" title="Sign out" onclick="return confirm('Sign out?');"><i class="fas fa-power-off"></i></a>
+    </div>
+
+  </aside>
+
+  <div class="main-area">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-page">{% block page_title %}{% endblock %}</div>
+        <div class="topbar-sub">{% block page_sub %}{% endblock %}</div>
+      </div>
+      <div class="topbar-right">
+        {% block topbar_actions %}{% endblock %}
+        <button class="icon-btn" id="notif-btn" onclick="NIDS.toggleNotif()" title="Notifications">
+          <i class="fas fa-bell"></i>
+          <span class="badge-dot" id="notif-dot" style="display:none;"></span>
+        </button>
+        <div class="clock-chip" id="topbar-clock">00:00:00</div>
+      </div>
+    </header>
+
+    <div class="notif-panel" id="notif-panel">
+      <div class="notif-head">NOTIFICATIONS
+        <button class="notif-clear-btn" onclick="NIDS.clearNotifs()">Clear all</button>
+      </div>
+      <div id="notif-list">
+        <div style="padding:24px;text-align:center;font-size:.84rem;color:var(--t-4);">No notifications yet.</div>
+      </div>
+    </div>
+
+    {% block page_content %}{% endblock %}
+
+  </div>
+
+</div>
+
+<!-- Shared JS -->
+<script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+
+<script>
+NIDS.startClock('topbar-clock');
+</script>
+
+{% block extra_js %}{% endblock %}
+
+</body>

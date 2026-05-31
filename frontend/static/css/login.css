@@ -18,23 +18,32 @@ body {
 .login-container {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
   overflow: hidden;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px; /* centered card width to match uploaded design */
+  margin: 48px auto; /* center with top spacing */
 }
 
 .login-header {
   background: #2c5f8a;
   color: white;
-  padding: 30px;
+  padding: 28px 24px; /* compact header like image */
   text-align: center;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
 }
 
 .login-header h1 {
-  font-size: 24px;
-  margin-bottom: 8px;
-  font-weight: 600;
+  font-size: 28px;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.page-bg {
+  background: #eef5f7; /* subtle page background to match image */
+  min-height: 100vh;
+  padding-top: 16px;
 }
 
 .login-header p {

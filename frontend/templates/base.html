@@ -177,6 +177,15 @@
       <a href="javascript:void(0)" class="nav-item" onclick="showHelp()">
         <span class="nav-icon"><i class="fas fa-question-circle"></i></span> Help
       </a>
+
+      <!-- ONLY SHOW ADMIN PORTAL IF ADMIN IS LOGGED IN -->
+      {% if session.is_admin %}
+      <div class="sb-section" style="margin-top: 5px;">ADMIN</div>
+      <a href="/admin-dashboard" class="nav-item">
+        <span class="nav-icon"><i class="fas fa-user-shield"></i></span>
+        <span style="color: #c62828;">Admin Portal</span>
+      </a>
+      {% endif %}
     </nav>
 
     <!-- User row -->
@@ -290,13 +299,6 @@
     </div>
   </div>
 </div>
-
-
-<div class="sb-section" style="margin-top: 5px;">ADMIN</div>
-<a href="/admin-dashboard" class="nav-item">
-    <span class="nav-icon"><i class="fas fa-user-shield"></i></span>
-    <span style="color: #c62828;">Admin Portal</span>
-</a>
 
 <!-- Shared JS -->
 <script src="{{ url_for('static', filename='js/socket.js') }}"></script>

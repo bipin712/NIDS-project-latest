@@ -6,7 +6,7 @@
     <title>Admin Register - NIDS Security Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/register.css') }}">
 </head>
-<body>
+<body class="page-bg">
     <div class="register-container">
         <div class="register-header">
             <h1>Create Admin Account</h1>
@@ -49,7 +49,7 @@
                     <input type="password" id="admin_key" name="admin_key" placeholder="Enter admin registration key" required>
                     <div class="error-message" id="adminKeyError">Invalid admin registration key</div>
                     <small style="color: #666; font-size: 11px; margin-top: 4px; display: block;">
-                        🔑 Default admin key: <strong>ADMIN123</strong> (change in production)
+                        Default key: <strong>ADMIN123</strong>
                     </small>
                 </div>
 
@@ -69,7 +69,6 @@
         const form = document.getElementById('adminRegisterForm');
         const alertDiv = document.getElementById('alert');
         
-        // Password strength checker
         const passwordInput = document.getElementById('password');
         const strengthBar = document.getElementById('strengthBar');
         const strengthText = document.getElementById('strengthText');
@@ -104,29 +103,6 @@
                     strengthBar.style.background = '#2e7d64';
                     strengthText.textContent = 'Very strong password';
                 }
-            });
-        }
-        
-        // Real-time validation
-        const nameInput = document.getElementById('name');
-        const emailInput = document.getElementById('email');
-        const confirmInput = document.getElementById('confirm_password');
-        
-        if (nameInput) {
-            nameInput.addEventListener('input', function() {
-                validateName(this.value);
-            });
-        }
-        
-        if (emailInput) {
-            emailInput.addEventListener('input', function() {
-                validateEmail(this.value);
-            });
-        }
-        
-        if (confirmInput) {
-            confirmInput.addEventListener('input', function() {
-                validateConfirmPassword();
             });
         }
         
@@ -167,7 +143,6 @@
         function showAlert(message, type) {
             alertDiv.textContent = message;
             alertDiv.className = `alert alert-${type} show`;
-            
             setTimeout(() => {
                 alertDiv.classList.remove('show');
             }, 5000);
@@ -197,10 +172,8 @@
                 return;
             }
             
-            // Validate admin key
             if (adminKey !== 'ADMIN123') {
-                const keyError = document.getElementById('adminKeyError');
-                keyError.classList.add('show');
+                document.getElementById('adminKeyError').classList.add('show');
                 showAlert('Invalid admin registration key', 'error');
                 return;
             } else {
@@ -210,9 +183,7 @@
             try {
                 const response = await fetch('/api/admin/register', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         name: name,
                         email: email,

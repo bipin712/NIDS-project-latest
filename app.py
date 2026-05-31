@@ -8,6 +8,7 @@ import json
 import sqlite3
 import re
 from functools import wraps
+from flask import Blueprint
 
 # Initialize Flask app with correct paths
 app = Flask(__name__, 
@@ -53,7 +54,7 @@ def init_db():
         )
     ''')
     
-    # ========== NEW: ADMINS TABLE ==========
+    # Admins table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS admins (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,15 +67,8 @@ def init_db():
         )
     ''')
     
-    # Insert default admin account if not exists
-    cursor.execute('SELECT id FROM admins WHERE email = ?', ('admin@nids.com',))
-    if not cursor.fetchone():
-        default_password = bcrypt.generate_password_hash('admin123').decode('utf-8')
-        cursor.execute('''
-            INSERT INTO admins (name, email, password)
-            VALUES (?, ?, ?)
-        ''', ('System Administrator', 'admin@nids.com', default_password))
-        print("[+] Default admin account created: admin@nids.com / admin123")
+    # DO NOT create default admin account - admins must register themselves
+    # =====================================================
     
     conn.commit()
     conn.close()
@@ -87,18 +81,20 @@ def login_required(f):
     """Decorator to require login for routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
+        # Allow access if either a normal user or an admin is logged in
+        if 'user_id' not in session and 'admin_id' not in session:
             return redirect(url_for('login_page'))
         return f(*args, **kwargs)
     return decorated_function
 
-# ========== NEW: ADMIN AUTHENTICATION DECORATOR ==========
+
+# ========== ADMIN AUTHENTICATION DECORATOR ==========
 def admin_login_required(f):
     """Decorator to require admin login for routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'admin_id' not in session:
-            return redirect(url_for('admin_login_page'))
+            return redirect(url_for('admin.admin_login_page'))
         return f(*args, **kwargs)
     return decorated_function
 
@@ -114,7 +110,7 @@ def register_page():
 def login_page():
     """Login page"""
     if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+        return render_template('login.html', already_logged_in=True, user_name=session.get('user_name'))
     return render_template('login.html')
 
 @app.route('/api/register', methods=['POST'])
@@ -194,7 +190,13 @@ def login():
         cursor.execute('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (user[0],))
         conn.commit()
         conn.close()
-        
+
+        # Clear any admin session keys to avoid role overlap
+        session.pop('admin_id', None)
+        session.pop('admin_name', None)
+        session.pop('admin_email', None)
+        session.pop('is_admin', None)
+
         session['user_id'] = user[0]
         session['user_name'] = user[1]
         session['user_email'] = user[2]
@@ -220,15 +222,18 @@ def logout():
     session.clear()
     return jsonify({'success': True, 'message': 'Logged out successfully', 'redirect': '/login'})
 
+# ========== ADMIN Blueprint ==========
+admin_bp = Blueprint('admin', __name__, template_folder='frontend/templates')
+
 # ========== NEW: ADMIN AUTHENTICATION ROUTES ==========
-@app.route('/admin-login')
+@admin_bp.route('/admin-login')
 def admin_login_page():
     """Admin Login page"""
     if 'admin_id' in session:
-        return redirect(url_for('admin_dashboard'))
+        return render_template('admin_login.html', already_logged_in=True, admin_name=session.get('admin_name'))
     return render_template('admin_login.html')
 
-@app.route('/api/admin/login', methods=['POST'])
+@admin_bp.route('/api/admin/login', methods=['POST'])
 def admin_login():
     """API endpoint for admin login"""
     try:
@@ -252,7 +257,12 @@ def admin_login():
         cursor.execute('UPDATE admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?', (admin[0],))
         conn.commit()
         conn.close()
-        
+
+        # Clear any user session keys to avoid role overlap
+        session.pop('user_id', None)
+        session.pop('user_name', None)
+        session.pop('user_email', None)
+
         session['admin_id'] = admin[0]
         session['admin_name'] = admin[1]
         session['admin_email'] = admin[2]
@@ -267,17 +277,79 @@ def admin_login():
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/api/admin/logout', methods=['POST'])
-def admin_logout():
+
+@admin_bp.route('/admin-register')
+def admin_register_page():
+    """Admin registration page"""
+    if 'admin_id' in session:
+        return render_template('admin_register.html', already_logged_in=True, admin_name=session.get('admin_name'))
+    return render_template('admin_register.html')
+
+
+@admin_bp.route('/api/admin/register', methods=['POST'])
+def admin_register():
+    """API endpoint for admin registration"""
+    try:
+        data = request.json
+        name = data.get('name', '').strip()
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        confirm_password = data.get('confirm_password', '')
+        admin_key = data.get('admin_key', '')
+
+        # Basic validation
+        if not all([name, email, password, admin_key]):
+            return jsonify({'success': False, 'message': 'All fields are required'}), 400
+
+        # Server-side admin key check
+        if admin_key != 'ADMIN123':
+            return jsonify({'success': False, 'message': 'Invalid admin registration key'}), 403
+
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            return jsonify({'success': False, 'message': 'Invalid email format'}), 400
+
+        if len(password) < 6:
+            return jsonify({'success': False, 'message': 'Password must be at least 6 characters'}), 400
+
+        if password != confirm_password:
+            return jsonify({'success': False, 'message': 'Passwords do not match'}), 400
+
+        # Check if admin exists
+        conn = sqlite3.connect('nids_database.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT id FROM admins WHERE email = ?', (email,))
+        if cursor.fetchone():
+            conn.close()
+            return jsonify({'success': False, 'message': 'Email already registered as admin'}), 400
+
+        # Hash password and save admin
+        hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+        cursor.execute('''
+            INSERT INTO admins (name, email, password)
+            VALUES (?, ?, ?)
+        ''', (name, email, hashed_password))
+        conn.commit()
+        conn.close()
+
+        return jsonify({
+            'success': True,
+            'message': 'Admin registration successful! Redirecting to admin login...',
+            'redirect': '/admin-login'
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin_bp.route('/api/admin/logout', methods=['POST'])
+def admin_logout_api():
     """API endpoint for admin logout"""
     session.clear()
     return jsonify({'success': True, 'message': 'Logged out successfully', 'redirect': '/admin-login'})
 
-# ========== NEW: ADMIN ROUTES ==========
-@app.route('/admin-dashboard')
+@admin_bp.route('/admin-dashboard')
 @admin_login_required
 def admin_dashboard():
-    """Admin Dashboard page"""
+    """Admin Dashboard page - requires admin login"""
     conn = sqlite3.connect('nids_database.db')
     cursor = conn.cursor()
     cursor.execute('SELECT COUNT(*) FROM users')
@@ -295,7 +367,7 @@ def admin_dashboard():
                          total_attacks=summary.get('high', 0) + summary.get('medium', 0),
                          admin_name=session.get('admin_name'))
 
-@app.route('/admin-users')
+@admin_bp.route('/admin-users')
 @admin_login_required
 def admin_users():
     """Admin User Management page"""
@@ -321,8 +393,58 @@ def admin_users():
                          users=user_list,
                          admin_name=session.get('admin_name'))
 
+
+# Admin Reports and Settings (admin-only views)
+@admin_bp.route('/admin-reports')
+@admin_login_required
+def admin_reports():
+    """Admin Reports page - requires admin login"""
+    summary = get_summary_stats()
+    performance = get_performance_metrics()
+    last_reports = {
+        'daily': '2024-04-06 23:59:59',
+        'weekly': '2024-03-31 23:59:59',
+        'monthly': '2024-03-01 00:00:00'
+    }
+    weekly_stats = {
+        'total_attacks': 8950,
+        'unique_sources': 247,
+        'avg_severity': 2.4,
+        'top_ip': '192.168.1.105'
+    }
+    monthly_stats = {
+        'total_events': 38500,
+        'total_attacks': 11250,
+        'unique_sources': 845
+    }
+    attack_distribution = {
+        'DoS': 42,
+        'Probe': 28,
+        'R2L': 15,
+        'U2R': 8,
+        'Normal': 7
+    }
+
+    # Redirect to shared reports view (login_required now allows admin sessions)
+    return redirect(url_for('reports'))
+
+
+@admin_bp.route('/admin-settings')
+@admin_login_required
+def admin_settings():
+    """Admin Settings page - requires admin login"""
+    # Use shared settings view; admin sessions pass the `login_required` check
+    return redirect(url_for('settings'))
+
+
+@admin_bp.route('/admin-logout')
+def admin_logout_page():
+    """Admin logout (GET) - clear session and redirect to admin login"""
+    session.clear()
+    return redirect(url_for('admin.admin_login_page'))
+
 # ========== NEW: ADMIN API ENDPOINTS ==========
-@app.route('/api/admin/users')
+@admin_bp.route('/api/admin/users')
 @admin_login_required
 def api_admin_users():
     """API endpoint to get all users"""
@@ -346,7 +468,7 @@ def api_admin_users():
     
     return jsonify({'success': True, 'users': user_list})
 
-@app.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
+@admin_bp.route('/api/admin/users/<int:user_id>', methods=['DELETE'])
 @admin_login_required
 def api_admin_delete_user(user_id):
     """API endpoint to delete a user"""
@@ -360,7 +482,7 @@ def api_admin_delete_user(user_id):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/api/admin/users/<int:user_id>/toggle-status', methods=['POST'])
+@admin_bp.route('/api/admin/users/<int:user_id>/toggle-status', methods=['POST'])
 @admin_login_required
 def api_admin_toggle_user_status(user_id):
     """API endpoint to activate/deactivate a user"""
@@ -985,6 +1107,7 @@ if __name__ == '__main__':
     print(f"🔐 User Login:        http://localhost:5000/login")
     print(f"📝 User Register:     http://localhost:5000/register")
     print(f"👑 Admin Login:       http://localhost:5000/admin-login")
+    print(f"📝 Admin Register:    http://localhost:5000/admin-register")
     print(f"📊 User Dashboard:    http://localhost:5000/dashboard")
     print(f"👑 Admin Dashboard:   http://localhost:5000/admin-dashboard")
     print("="*60)
@@ -1002,4 +1125,7 @@ if __name__ == '__main__':
     import sys
     sys.stdout.flush()
     
+    # register admin blueprint
+    app.register_blueprint(admin_bp)
+
     socketio.run(app, debug=True, host='0.0.0.0', port=5000)

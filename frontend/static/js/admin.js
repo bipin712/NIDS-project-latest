@@ -23,7 +23,7 @@ function showAdminAlert(message, type) {
 
 // Toggle user status (activate/deactivate)
 async function toggleUserStatus(userId, currentStatus) {
-    const action = currentStatus === 1 ? 'deactivate' : 'activate';
+    const action = currentStatus == 1 ? 'deactivate' : 'activate';
     
     if (confirm(`Are you sure you want to ${action} this user?`)) {
         try {
@@ -96,14 +96,10 @@ function initUserSearch() {
     });
 }
 
-// Initialize admin dashboard
-function initAdminDashboard() {
-    console.log('Admin dashboard initialized');
-    // Any additional initialization can go here
+// Initialize admin page
+function initAdminPage() {
+    initUserSearch();
 }
 
 // Run initialization when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    initUserSearch();
-    initAdminDashboard();
-});
+document.addEventListener('DOMContentLoaded', initAdminPage);

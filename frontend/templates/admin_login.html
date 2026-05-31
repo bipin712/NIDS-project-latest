@@ -5,21 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - NIDS Security Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
-<body>
+<body class="page-bg">
     <div class="login-container">
-        <div class="login-header admin-login-header" style="background: #c62828;">
-            <h1>Admin Portal <span class="admin-badge">ADMIN</span></h1>
+        <div class="login-header">
+            <h1>Admin Portal</h1>
             <p>Login to Administrator Dashboard</p>
         </div>
         <div class="login-body">
             <div id="alert" class="alert"></div>
-            
+
+            {% if already_logged_in %}
+            <div class="info-box" style="padding:16px;background:#fff6f6;border:1px solid #f5c6cb;border-radius:6px;margin-bottom:12px;">
+                You are already logged in as <strong>{{ admin_name }}</strong>. <a href="{{ url_for('logout_page') }}">Logout</a> to switch accounts.
+            </div>
+            {% endif %}
+
             <form id="adminLoginForm">
                 <div class="form-group">
                     <label for="email">Admin Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="admin@nids.com" required autocomplete="email">
+                    <input type="email" id="email" name="email" placeholder="admin@example.com" required autocomplete="email">
                     <div class="error-message" id="emailError">Please enter a valid email</div>
                 </div>
 
@@ -35,10 +40,13 @@
                     </label>
                 </div>
 
-                <button type="submit" class="login-btn" style="background: #c62828;">Login as Admin</button>
+                <button type="submit" class="login-btn">Login as Admin</button>
             </form>
 
-            <div class="back-to-user">
+            <div class="register-link">
+                Don't have an admin account? <a href="/admin-register">Register as Admin</a>
+            </div>
+            <div class="register-link" style="margin-top: 10px;">
                 <a href="/login">← Back to User Login</a>
             </div>
         </div>
@@ -47,7 +55,12 @@
     <script>
         const form = document.getElementById('adminLoginForm');
         const alertDiv = document.getElementById('alert');
-        
+
+        if (localStorage.getItem('admin_email')) {
+            document.getElementById('email').value = localStorage.getItem('admin_email');
+            document.getElementById('remember').checked = true;
+        }
+
         function validateEmail(email) {
             const error = document.getElementById('emailError');
             const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -58,7 +71,7 @@
             error.classList.remove('show');
             return true;
         }
-        
+
         function validatePassword(password) {
             const error = document.getElementById('passwordError');
             if (password.length === 0) {
@@ -68,7 +81,7 @@
             error.classList.remove('show');
             return true;
         }
-        
+
         function showAlert(message, type) {
             alertDiv.textContent = message;
             alertDiv.className = `alert alert-${type} show`;
@@ -76,34 +89,34 @@
                 alertDiv.classList.remove('show');
             }, 5000);
         }
-        
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
             const remember = document.getElementById('remember').checked;
-            
+
             if (!validateEmail(email) || !validatePassword(password)) {
                 showAlert('Please enter valid credentials', 'error');
                 return;
             }
-            
+
             if (remember) {
                 localStorage.setItem('admin_email', email);
             } else {
                 localStorage.removeItem('admin_email');
             }
-            
+
             try {
                 const response = await fetch('/api/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ email: email, password: password })
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
                     showAlert(data.message, 'success');
                     setTimeout(() => {
@@ -116,15 +129,7 @@
                 showAlert('Network error. Please try again.', 'error');
             }
         });
-        
-        // Load remembered email
-        const rememberedEmail = localStorage.getItem('admin_email');
-        if (rememberedEmail) {
-            document.getElementById('email').value = rememberedEmail;
-            document.getElementById('remember').checked = true;
-        }
-        
-        // Enter key support
+
         document.getElementById('password').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 form.dispatchEvent(new Event('submit'));

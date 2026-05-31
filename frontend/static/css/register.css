@@ -18,17 +18,26 @@ body {
 .register-container {
   background: white;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
   overflow: hidden;
   width: 100%;
-  max-width: 450px;
+  max-width: 420px; /* match login card width */
+  margin: 48px auto;
 }
 
 .register-header {
   background: #2c5f8a;
   color: white;
-  padding: 30px;
+  padding: 28px 24px;
   text-align: center;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.page-bg {
+  background: #eef5f7; /* subtle page background to match login */
+  min-height: 100vh;
+  padding-top: 16px;
 }
 
 .register-header h1 {
