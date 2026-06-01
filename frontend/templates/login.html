@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - NIDS Security Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Welcome Back</h1>
+            <p>Login to NIDS Security Dashboard</p>
+        </div>
+        <div class="login-body">
+            <div id="alert" class="alert"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="Enter your email" required autocomplete="email">
+                    <div class="error-message" id="emailError">Please enter a valid email</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <div class="error-message" id="passwordError">Password is required</div>
+                </div>
+
+                <div class="remember-me">
+                    <label>
+                        <input type="checkbox" id="remember"> Remember me
+                    </label>
+                    <a href="#" onclick="openForgotPasswordModal(event)" class="forgot-password">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="login-btn">Login</button>
+            </form>
+
+            <div class="register-link">
+                Don't have an account? <a href="/register">Register here</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Reset Password</h3>
+                <button class="modal-close" onclick="closeForgotPasswordModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="forgotPasswordStep1">
+                    <p style="margin-bottom: 16px; color: #666;">Select how you'd like to reset your password:</p>
+                    <div class="form-group">
+                        <button type="button" class="btn-reset-method" onclick="showResetViaEmail()">
+                            <span style="font-size: 18px; margin-right: 8px;">📧</span>
+                            <span>Reset via Email</span>
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <button type="button" class="btn-reset-method" onclick="showResetViaMobile()">
+                            <span style="font-size: 18px; margin-right: 8px;">📱</span>
+                            <span>Reset via Mobile Number</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="forgotPasswordStep2" style="display: none;">
+                    <form id="forgotPasswordForm">
+                        <div class="form-group">
+                            <label for="resetEmail">Email Address</label>
+                            <input type="email" id="resetEmail" placeholder="Enter your email address" required>
+                        </div>
+                        <button type="button" class="btn-send-code" id="sendCodeEmailBtn" onclick="sendResetCodeEmail()">Send Code to Email</button>
+                        <div id="emailCodeSentMessage" style="display: none; margin-top: 10px; font-size: 12px;">
+                            <div class="code-display-box" id="emailCodeBox" style="display:none;">
+                                <h4>Verification Code</h4>
+                                <div class="code-display-value" id="emailCodeValue">000000</div>
+                                <div class="code-display-info">Use this code to reset your password</div>
+                            </div>
+                            <div id="emailTimer" class="timer-display" style="display:none;">Expires in <span id="emailTimerValue">05:00</span></div>
+                            <div id="emailCodeText" style="display:none; margin-top:8px; padding: 10px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px;">✓ Code sent successfully! Check your email.</div>
+                            <div id="emailCodeError" style="display:none; margin-top:10px; padding:10px; background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; border-radius:4px; font-size:12px;"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="resetCode">Verification Code</label>
+                            <input type="text" id="resetCode" placeholder="Enter verification code" maxlength="6" disabled>
+                            <small style="color: #888; margin-top: 4px; display: block;">Check your email for the 6-digit code</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="newResetPassword">New Password</label>
+                            <input type="password" id="newResetPassword" placeholder="Enter new password" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmResetPassword">Confirm Password</label>
+                            <input type="password" id="confirmResetPassword" placeholder="Confirm new password" disabled>
+                        </div>
+                        <button type="button" class="btn" style="width: 100%; margin-top: 10px; background: #2c5f8a; color: white; border: none; padding: 10px;" onclick="goBackResetMethod()">← Go Back</button>
+                    </form>
+                </div>
+
+                <div id="forgotPasswordStep3" style="display: none;">
+                    <form id="forgotPasswordMobileForm">
+                        <div class="form-group">
+                            <label for="resetMobile">Mobile Number</label>
+                            <input type="tel" id="resetMobile" placeholder="Enter your mobile number" required>
+                        </div>
+                        <button type="button" class="btn-send-code" id="sendCodeMobileBtn" onclick="sendResetCodeMobile()">Send Code to Mobile</button>
+                        <div id="mobileCodeSentMessage" style="display: none; margin-top: 10px; font-size: 12px;">
+                            <div class="code-display-box" id="mobileCodeBox" style="display:none;">
+                                <h4>Verification Code</h4>
+                                <div class="code-display-value" id="mobileCodeValue">000000</div>
+                                <div class="code-display-info">Use this code to reset your password</div>
+                            </div>
+                            <div id="mobileTimer" class="timer-display" style="display:none;">Expires in <span id="mobileTimerValue">05:00</span></div>
+                            <div id="mobileCodeText" style="display:none; margin-top:8px; padding: 10px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 4px;">✓ Code sent successfully! Check your SMS.</div>
+                            <div id="mobileCodeError" style="display:none; margin-top:10px; padding:10px; background:#f8d7da; color:#721c24; border:1px solid #f5c6cb; border-radius:4px; font-size:12px;"></div>
+                        </div>
+                        <div class="form-group">
+                            <label for="resetCodeMobile">Verification Code</label>
+                            <input type="text" id="resetCodeMobile" placeholder="Enter verification code" maxlength="6" disabled>
+                            <small style="color: #888; margin-top: 4px; display: block;">Check your SMS for the 6-digit code</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="newResetPasswordMobile">New Password</label>
+                            <input type="password" id="newResetPasswordMobile" placeholder="Enter new password" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmResetPasswordMobile">Confirm Password</label>
+                            <input type="password" id="confirmResetPasswordMobile" placeholder="Confirm new password" disabled>
+                        </div>
+                        <button type="button" class="btn" style="width: 100%; margin-top: 10px; background: #2c5f8a; color: white; border: none; padding: 10px;" onclick="goBackResetMethod()">← Go Back</button>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer" id="forgotPasswordFooter">
+                <button class="btn btn-secondary" onclick="closeForgotPasswordModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitResetPassword()">Reset Password</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/login.js') }}"></script>
+</body>
+</html>

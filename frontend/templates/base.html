@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}ShieldNet NIDS{% endblock %}</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+  <!-- Flask-SocketIO client (served by Flask) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+
+  <!-- Shared CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+
+  <!-- Page-specific CSS -->
+  {% block extra_css %}{% endblock %}
+  
+  <style>
+    /* Help Modal Styles */
+    .help-modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+    .help-modal-backdrop.show {
+      display: flex;
+    }
+    .help-modal-card {
+      background: white;
+      border-radius: 8px;
+      max-width: 550px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    .help-modal-header {
+      padding: 20px 20px 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #e0e4e8;
+    }
+    .help-modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+    .help-modal-close {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #888;
+    }
+    .help-modal-close:hover {
+      color: #c62828;
+    }
+    .help-modal-body {
+      padding: 20px;
+    }
+    .help-section {
+      margin-bottom: 20px;
+    }
+    .help-section h4 {
+      color: #2c5f8a;
+      margin-bottom: 10px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .help-section p {
+      font-size: 13px;
+      color: #555;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .help-section ul {
+      margin-left: 20px;
+      font-size: 13px;
+      color: #555;
+    }
+    .help-section li {
+      margin-bottom: 5px;
+    }
+    .help-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #e0e4e8;
+      font-size: 11px;
+      color: #999;
+      text-align: center;
+    }
+    .badge-help {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .badge-help-high { background: #c62828; color: white; }
+    .badge-help-medium { background: #e67e22; color: white; }
+    .badge-help-low { background: #2c5f8a; color: white; }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ═══════════════════════════════════════════════════
+       SIDEBAR
+  ════════════════════════════════════════════════════ -->
+  <aside class="sidebar">
+
+    <!-- Brand -->
+    <div class="sb-brand">
+      <div class="sb-logo-row">
+        <div class="sb-logo-icon"><i class="fas fa-shield"></i></div>
+        <div>
+          <div class="sb-logo-name">SHIELDNET</div>
+          <div class="sb-logo-ver">NIDS v1.0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Online status -->
+    <div class="sb-status">
+      <div class="sb-status-dot" id="sb-status-dot"></div>
+      <span class="sb-status-text" id="sb-status-text">SYSTEM READY</span>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="sb-nav">
+      <div class="sb-section">MONITORING</div>
+      <a href="{{ url_for('dashboard') }}"
+         class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-chart-line"></i></span> Dashboard
+        <span class="nav-badge" id="sb-alert-badge" style="display:none;">0</span>
+      </a>
+      <a href="{{ url_for('alerts') }}"
+         class="nav-item {% if active_page == 'alerts' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-bell"></i></span> Alerts
+      </a>
+      <a href="{{ url_for('historical') }}"
+         class="nav-item {% if active_page == 'historical' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-chart-bars"></i></span> Analytics
+      </a>
+      <a href="{{ url_for('reports') }}"
+         class="nav-item {% if active_page == 'reports' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-file"></i></span> Reports
+      </a>
+
+      <div class="sb-section" style="margin-top:12px;">SYSTEM</div>
+      <a href="{{ url_for('profile') }}"
+         class="nav-item {% if active_page == 'profile' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-user"></i></span> Profile
+      </a>
+      <a href="{{ url_for('settings') }}"
+         class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+        <span class="nav-icon"><i class="fas fa-cog"></i></span> Settings
+      </a>
+      <a href="javascript:void(0)" class="nav-item" onclick="showHelp()">
+        <span class="nav-icon"><i class="fas fa-question-circle"></i></span> Help
+      </a>
+    </nav>
+
+    <!-- User row -->
+    <div class="sb-user">
+      <div class="sb-avatar">
+        {{ user_name[0].upper() if user_name else '?' }}
+      </div>
+      <div class="sb-user-info">
+        <div class="sb-user-name">
+          {{ user_name if user_name else 'Guest' }}
+        </div>
+        <div class="sb-user-role">
+          {% if user_name %}
+            Active User
+          {% else %}
+            Unauthenticated
+          {% endif %}
+        </div>
+      </div>
+      <a href="{{ url_for('logout_page') }}" class="sb-logout" title="Sign out" onclick="return confirm('Are you sure you want to logout?');"><i class="fas fa-power-off"></i></a>
+    </div>
+
+  </aside><!-- /sidebar -->
+
+  <!-- ═══════════════════════════════════════════════════
+       MAIN AREA
+  ════════════════════════════════════════════════════ -->
+  <div class="main-area">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-page">{% block page_title %}{% endblock %}</div>
+        <div class="topbar-sub">{% block page_sub %}{% endblock %}</div>
+      </div>
+      <div class="topbar-right">
+        {% block topbar_actions %}{% endblock %}
+        <button class="icon-btn" id="notif-btn" onclick="NIDS.toggleNotif()" title="Notifications">
+          <i class="fas fa-bell"></i>
+          <span class="badge-dot" id="notif-dot" style="display:none;"></span>
+        </button>
+        <div class="clock-chip" id="topbar-clock">00:00:00</div>
+      </div>
+    </header>
+
+    <!-- Notification panel -->
+    <div class="notif-panel" id="notif-panel">
+      <div class="notif-head">
+        NOTIFICATIONS
+        <button class="notif-clear-btn" onclick="NIDS.clearNotifs()">Clear all</button>
+      </div>
+      <div id="notif-list">
+        <div style="padding:24px;text-align:center;font-size:.84rem;color:var(--t-4);">
+          No notifications yet.
+        </div>
+      </div>
+    </div>
+
+    <!-- Page content slot -->
+    {% block page_content %}{% endblock %}
+
+  </div><!-- /main-area -->
+</div><!-- /app-shell -->
+
+<!-- Help Modal -->
+<div id="helpModal" class="help-modal-backdrop" onclick="closeHelpModal(event)">
+  <div class="help-modal-card" onclick="event.stopPropagation()">
+    <div class="help-modal-header">
+      <span class="help-modal-title"><i class="fas fa-question-circle"></i> NIDS Help Guide</span>
+      <button class="help-modal-close" onclick="closeHelpModal()">&times;</button>
+    </div>
+    <div class="help-modal-body">
+      <div class="help-section">
+        <h4><i class="fas fa-play-circle"></i> Getting Started</h4>
+        <p>1. Select a network interface from the dropdown in the top bar</p>
+        <p>2. Click <strong>"START CAPTURE"</strong> to begin monitoring network traffic</p>
+        <p>3. View live alerts on the Dashboard as they are detected</p>
+      </div>
+
+      <div class="help-section">
+        <h4><i class="fas fa-exclamation-triangle"></i> Understanding Alerts</h4>
+        <p><span class="badge-help badge-help-high">HIGH</span> - Critical threats requiring immediate attention</p>
+        <p><span class="badge-help badge-help-medium">MEDIUM</span> - Suspicious activity that should be investigated</p>
+        <p><span class="badge-help badge-help-low">LOW</span> - Informational alerts for awareness</p>
+        <p><span class="badge-help" style="background:#2e7d64; color:white;">NORMAL</span> - Legitimate network traffic (no threat)</p>
+      </div>
+
+      <div class="help-section">
+        <h4><i class="fas fa-chart-line"></i> Attack Types</h4>
+        <ul>
+          <li><strong>DoS</strong> - Denial of Service (overwhelming a target with traffic)</li>
+          <li><strong>Probe</strong> - Port scanning and network reconnaissance</li>
+          <li><strong>R2L</strong> - Remote to Local (unauthorized access attempts)</li>
+          <li><strong>U2R</strong> - User to Root (privilege escalation attempts)</li>
+          <li><strong>Normal</strong> - Regular network activity</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h4><i class="fas fa-chart-bar"></i> Dashboard Features</h4>
+        <ul>
+          <li><strong>Real-time charts</strong> - Traffic timeline and attack distribution</li>
+          <li><strong>SHAP explanations</strong> - Why the ML model flagged an attack</li>
+          <li><strong>Export CSV</strong> - Download alerts for offline analysis</li>
+          <li><strong>Historical analytics</strong> - Attack patterns and ML performance</li>
+        </ul>
+      </div>
+    </div>
+    <div class="help-footer">
+      <i class="fas fa-envelope"></i> For technical support: nids-support@college.edu
+    </div>
+  </div>
+</div>
+
+
+<div class="sb-section" style="margin-top: 5px;">ADMIN</div>
+<a href="/admin-dashboard" class="nav-item">
+    <span class="nav-icon"><i class="fas fa-user-shield"></i></span>
+    <span style="color: #c62828;">Admin Portal</span>
+</a>
+
+<!-- Shared JS -->
+<script src="{{ url_for('static', filename='js/socket.js') }}"></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+
+<!-- Inline shared utilities (sidebar, clock, notifications) -->
+<script>
+'use strict';
+var NIDS = window.NIDS || {};
+window.NIDS = NIDS;
+
+/* ── Clock ──────────────────────────────────────────────────────── */
+NIDS.startClock = function (id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  function tick() {
+    el.textContent = new Date().toLocaleTimeString('en-GB', { hour12: false });
+  }
+  tick();
+  setInterval(tick, 1000);
+};
+
+/* ── Sidebar user (populated server-side via Jinja2) ────────────── */
+NIDS.initSidebar = function () {
+  /* Nothing needed — Jinja2 already renders user data */
+};
+
+/* ── Notifications ──────────────────────────────────────────────── */
+NIDS._notifs    = [];
+NIDS._notifOpen = false;
+
+NIDS.toggleNotif = function () {
+  NIDS._notifOpen = !NIDS._notifOpen;
+  var panel = document.getElementById('notif-panel');
+  if (panel) panel.classList.toggle('open', NIDS._notifOpen);
+};
+
+NIDS.clearNotifs = function () {
+  NIDS._notifs = [];
+  var list = document.getElementById('notif-list');
+  if (list) list.innerHTML = '<div style="padding:24px;text-align:center;font-size:.84rem;color:var(--t-4);">No notifications.</div>';
+  var dot = document.getElementById('notif-dot');
+  if (dot) dot.style.display = 'none';
+};
+
+NIDS.pushNotif = function (icon, text, color) {
+  NIDS._notifs.unshift({ icon: icon, text: text, color: color, time: new Date().toLocaleTimeString('en-GB', { hour12: false }) });
+  if (NIDS._notifs.length > 20) NIDS._notifs.pop();
+  NIDS._renderNotifs();
+  var dot = document.getElementById('notif-dot');
+  if (dot) dot.style.display = '';
+};
+
+NIDS._renderNotifs = function () {
+  var list = document.getElementById('notif-list');
+  if (!list) return;
+  list.innerHTML = NIDS._notifs.slice(0, 10).map(function (n) {
+    return '<div class="notif-item">' +
+      '<div style="width:10px;display:flex;justify-content:center;padding-top:4px;">' +
+        '<div class="notif-circle" style="background:' + n.color + ';"></div>' +
+      '</div>' +
+      '<span class="notif-text">' + n.icon + ' ' + n.text + '</span>' +
+      '<span class="notif-time">' + n.time + '</span>' +
+    '</div>';
+  }).join('');
+};
+
+/* Close notif on outside click */
+document.addEventListener('click', function (e) {
+  var panel = document.getElementById('notif-panel');
+  var btn   = document.getElementById('notif-btn');
+  if (panel && NIDS._notifOpen && !panel.contains(e.target) && btn && !btn.contains(e.target)) {
+    NIDS._notifOpen = false;
+    panel.classList.remove('open');
+  }
+});
+
+/* ── Help Modal Functions ───────────────────────────────────────── */
+function showHelp() {
+  var modal = document.getElementById('helpModal');
+  if (modal) {
+    modal.classList.add('show');
+  }
+}
+
+function closeHelpModal(event) {
+  var modal = document.getElementById('helpModal');
+  if (modal) {
+    modal.classList.remove('show');
+  }
+}
+
+/* Start the clock */
+NIDS.startClock('topbar-clock');
+</script>
+
+<!-- Page-specific JS -->
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>
